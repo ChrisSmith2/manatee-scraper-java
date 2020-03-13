@@ -309,7 +309,7 @@ public class TEAMSGradeParser {
         //0=Title, 1=Average, 2=Weight
         String[] $catInfo;
         try {
-            $catInfo = $cat.getElementsByTag("h1").text().split("split");
+            $catInfo = $cat.getElementsByTag("h1").text().split("split|Average:");
         } catch (Exception e) {
             return null;
         }
@@ -317,7 +317,8 @@ public class TEAMSGradeParser {
         // this is the case.
         final boolean is100Pt = $cat.select("td.AssignmentPointsPossible")
                 .size() == 0;
-        String categoryTableId = ($catInfo[0].trim().replace(" ", "_") + "BodyTable").trim();
+//        String categoryTableId = ($catInfo[0].trim().replaceAll("[:, ]", "") + "BodyTable").trim();
+        String categoryTableId = ($catInfo[0].trim().replaceAll("\\W", "") + "BodyTable").trim();
         // Find all of the assignments using category name since assginment table id is CategoryName + "BodyTable"
         //TODO Ghost category sometimes inserted
         Elements $assignments;
@@ -345,7 +346,7 @@ public class TEAMSGradeParser {
         final Category cat = new Category();
         cat.id = catId;
         cat.title = $catInfo[0].trim();
-        cat.weight = weightdMatcher.find() ? Integer.valueOf(weightdMatcher.group(0)) : null;
+        cat.weight = weightdMatcher.find() ? Integer.valueOf(weightdMatcher.group(0)) : -1;
         cat.average = averageMatcher.find() ? Double
                 .valueOf(averageMatcher.group(0)) : null;
         cat.bonus = GradeCalc.categoryBonuses(assignments);

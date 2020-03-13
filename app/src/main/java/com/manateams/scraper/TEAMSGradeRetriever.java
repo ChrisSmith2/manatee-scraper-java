@@ -33,7 +33,6 @@ import java.util.HashMap;
 
 import javax.net.ssl.SSLSocketFactory;
 
-
 public class TEAMSGradeRetriever {
 
 
@@ -55,9 +54,9 @@ public class TEAMSGradeRetriever {
     @Nullable
     public String getNewCookie(final String username, final String password, final TEAMSUserType userType) {
         try {
-            final String cStoneCookie = getAISDCookie(username, password);
-            final String TEAMSCookie = getTEAMSCookie(cStoneCookie, userType);
-            return cStoneCookie + ';' + TEAMSCookie;
+//            final String cStoneCookie = getAISDCookie(username, password);
+            final String TEAMSCookie = getTEAMSCookie(username, password, userType);
+            return TEAMSCookie;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -107,7 +106,13 @@ public class TEAMSGradeRetriever {
                 "User-Agent: QHAC"
         };
 
-        doRawPOSTRequest(userType.teamsHost(), "/selfserve/SignOnLoginAction.do", headers, query);
+//        String postResult = doRawPOSTRequest(userType.teamsHost(), "/selfserve/SignOnLoginAction.do", headers, query);
+
+        final HashMap<String, String> data = new HashMap<>();
+        data.put("Cookie", cookie);
+        data.put("Accept", "*/*");
+        data.put("User-Agent", "QHAC");
+        String postResult = doPOSTRequest("https://grades.austinisd.org/selfserve/SignOnLoginAction.do", data, query);
 
         if (userType.isParent()) {
             try {
@@ -135,15 +140,19 @@ public class TEAMSGradeRetriever {
     }
 
     private String getAISDCookie(final String username, final String password) throws IOException {
-        final String rawQuery = "cn=" + username + "&[password]=" + password;
-        final String query = URLEncoder.encode(rawQuery, "UTF-8");
+        final String rawQuery = "[Client.Hardware]=&[User.ViewportSize]=1920x954&cn=" + username + "&[password]=" + password;
 
         final String[] headers = new String[]{
-                "User-Agent: QHAC",
-                "Accept: */*"
+                "Origin: https://my.austinisd.org",
+                "Upgrade-Insecure-Requests: 1",
+                "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:55.0) Gecko/20100101 Firefox/55.0",
+                "Accept: */*",
+                "Referer: https://my.austinisd.org/LoginPolicy.jsp",
+                "Accept-Encoding: gzip, deflate, br",
+                "Accept-Language: en-US,en;q=0.8"
         };
 
-        final String response = doRawPOSTRequest("my.austinisd.org", "/WebNetworkAuth/", headers, query);
+        final String response = doRawPOSTRequest("my.austinisd.org", "/WebNetworkAuth/", headers, rawQuery);
 
         for (final String line : response.split("\n")) {
             if (line.startsWith("Set-Cookie: CStoneSessionID=")) {
@@ -154,14 +163,17 @@ public class TEAMSGradeRetriever {
         return null;
     }
 
-    private String getTEAMSCookie(final String AISDCookie, final TEAMSUserType userType) throws IOException {
+    private String getTEAMSCookie(final String username, final String password, final TEAMSUserType userType) throws IOException {
+
         final String[] headers = new String[]{
-                "Cookie: " + AISDCookie,
+                "Upgrade-Insecure-Requests: 1",
+                "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:55.0) Gecko/20100101 Firefox/55.0",
                 "Accept: */*",
-                "User-Agent: Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
+                "Accept-Encoding: gzip, deflate, br",
+                "Accept-Language: en-US,en;q=0.8"
         };
 
-        final String response = doRawPOSTRequest(userType.teamsHost(), "/selfserve/EntryPointSignOnAction.do?parent=" + userType.isParent(), headers, "");
+        final String response = doGETRequest("https://grades.austinisd.org/selfserve/EntryPointSignOnAction.do?parent=false");
 
         for (final String line : response.split("\n")) {
             if (line.startsWith("Set-Cookie: JSESSIONID=")) {
@@ -188,6 +200,26 @@ public class TEAMSGradeRetriever {
             Response response = client.newCall(request).execute();
             if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
             responseString = response.body().string();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return responseString;
+    }
+
+    private String doGETRequest(final String url) {
+        final OkHttpClient client = new OkHttpClient();
+
+        Request request = new Request.Builder()
+                .url(url)
+                .header("User-Agent", "OkHttp Headers.java")
+                .get()
+                .build();
+
+        String responseString = null;
+        try {
+            Response response = client.newCall(request).execute();
+            if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+            responseString = response.headers().toString();
         } catch (IOException e) {
             e.printStackTrace();
         }
