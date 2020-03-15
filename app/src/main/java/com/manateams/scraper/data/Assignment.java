@@ -2,6 +2,8 @@ package com.manateams.scraper.data;
 
 import com.manateams.scraper.util.Numeric;
 
+import java.text.DecimalFormat;
+
 public class Assignment {
 	
 	public String id;
@@ -26,8 +28,10 @@ public class Assignment {
 		final StringBuilder pts = new StringBuilder();
 		//Account for when ptsPossible is not 100
 		pts.append(Numeric.doubleToPrettyString(Math.round(ptsEarned.value_d*(ptsPossible/100))));
-		if (ptsPossible != 100)
-			pts.append("/" + Numeric.doubleToPrettyString(ptsPossible));
+		if (ptsPossible != 100) {
+			double percent = Math.round(ptsEarned.value_d * 10) / 10.0;
+			pts.append("/" + Numeric.doubleToPrettyString(ptsPossible) + " (" + new DecimalFormat("###.#").format(percent) + "%)");
+		}
 		
 		if(weight != 1.0)
 			pts.append("\u00D7" + Numeric.doubleToPrettyString(weight));
