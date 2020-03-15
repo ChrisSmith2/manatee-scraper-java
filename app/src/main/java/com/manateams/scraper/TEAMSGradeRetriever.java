@@ -173,7 +173,8 @@ public class TEAMSGradeRetriever {
                 "Accept-Language: en-US,en;q=0.8"
         };
 
-        final String response = doGETRequest("https://grades.austinisd.org/selfserve/EntryPointSignOnAction.do?parent=false");
+        String parentStr = userType.isParent() ? "true" : "false";
+        final String response = doGETRequest("https://grades.austinisd.org/selfserve/EntryPointSignOnAction.do?parent=" + parentStr);
 
         for (final String line : response.split("\n")) {
             if (line.startsWith("Set-Cookie: JSESSIONID=")) {
