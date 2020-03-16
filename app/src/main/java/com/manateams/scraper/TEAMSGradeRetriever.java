@@ -67,7 +67,7 @@ public class TEAMSGradeRetriever {
     }
 
     @Nullable
-    public String[] getStudentIDs(final String username, final String password, final String teamsUser, final String teamsPassword, final String cookie, final TEAMSUserType userType) {
+    public String[][] getStudentIDsAndNames(final String username, final String password, final String teamsUser, final String teamsPassword, final String cookie, final TEAMSUserType userType) {
         try {
             if (teamsUser != null && teamsUser.length() > 0) {
                 return postTEAMSLogin(teamsUser, teamsPassword, cookie, userType);
@@ -122,7 +122,7 @@ public class TEAMSGradeRetriever {
     /*
     Returns a new set of user information if user is a parent account.
      */
-    public String[] postTEAMSLogin(final String username, final String password, final String cookie, final TEAMSUserType userType) throws IOException {
+    public String[][] postTEAMSLogin(final String username, final String password, final String cookie, final TEAMSUserType userType) throws IOException {
         final String query = "userLoginId=" + URLEncoder.encode(username, "UTF-8") + "&userPassword=" + URLEncoder.encode(password, "UTF-8");
 
         final String[] headers = new String[]{
@@ -145,7 +145,8 @@ public class TEAMSGradeRetriever {
 
                 final Document doc = Jsoup.parse(chooseUser);
                 String[] studentIDs = doc.getElementById("tableBodyTable").children().select("tr > td:nth-child(1)").text().split(" ");
-                return studentIDs;
+                String[] studentNames = doc.getElementById("tableBodyTable").children().select("tr > td:nth-child(2)").text().split("(?<!,) ");
+                return new String[][]{studentIDs, studentNames};
             } catch (IOException e) {
                 return null;
             }
