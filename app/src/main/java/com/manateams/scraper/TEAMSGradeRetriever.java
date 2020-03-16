@@ -13,6 +13,8 @@ import com.squareup.okhttp.Request;
 import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import java.io.BufferedReader;
@@ -38,6 +40,7 @@ public class TEAMSGradeRetriever {
 
     private final String REGEX_USER_TYPE = "^[sS]\\d{6,8}\\d?$";
     private final TEAMSGradeParser parser;
+    private String chooseUser;
 
     public TEAMSGradeRetriever() {
         parser = new TEAMSGradeParser();
@@ -64,13 +67,35 @@ public class TEAMSGradeRetriever {
     }
 
     @Nullable
-    public String getNewUserIdentification(final String username, final String password, final String studentID, final String teamsUser, final String teamsPassword, final String cookie, final TEAMSUserType userType) {
+    public String[] getStudentIDs(final String username, final String password, final String teamsUser, final String teamsPassword, final String cookie, final TEAMSUserType userType) {
         try {
             if (teamsUser != null && teamsUser.length() > 0) {
-                return postTEAMSLogin(teamsUser, teamsPassword, studentID, cookie, userType);
+                return postTEAMSLogin(teamsUser, teamsPassword, cookie, userType);
             } else {
-                return postTEAMSLogin(username, password, studentID, cookie, userType);
+                return postTEAMSLogin(username, password, cookie, userType);
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public String getNewUserIdentification(final String studentID, final String cookie, final TEAMSUserType userType) {
+        try {
+            final int idIndex = parser.parseStudentInfoIndex(studentID, chooseUser);
+            String studentInfoLocID = "";
+            if (idIndex != -1) {
+                studentInfoLocID = parser.parseStudentInfoLocID(idIndex, chooseUser);
+            } else {
+                return null;
+            }
+
+            doRawPOSTRequest(userType.teamsHost(), "/selfserve/ViewStudentListChangeTabDisplayAction.do", new String[]{
+                    "Cookie: " + cookie,
+                    "Accept: */*",
+                    "User-Agent: QHAC"
+            }, "selectedIndexId=" + idIndex + "&studentLocId=" + studentInfoLocID + "&selectedTable=table");
+            return "&selectedIndexId=" + idIndex + "&studentLocId=" + studentInfoLocID + "&selectedTable=table";
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -97,7 +122,7 @@ public class TEAMSGradeRetriever {
     /*
     Returns a new set of user information if user is a parent account.
      */
-    public String postTEAMSLogin(final String username, final String password, final String studentID, final String cookie, final TEAMSUserType userType) throws IOException {
+    public String[] postTEAMSLogin(final String username, final String password, final String cookie, final TEAMSUserType userType) throws IOException {
         final String query = "userLoginId=" + URLEncoder.encode(username, "UTF-8") + "&userPassword=" + URLEncoder.encode(password, "UTF-8");
 
         final String[] headers = new String[]{
@@ -116,26 +141,16 @@ public class TEAMSGradeRetriever {
 
         if (userType.isParent()) {
             try {
-                String chooseUser = getTEAMSPage("/selfserve/ViewStudentListAction.do", "", cookie, userType, "");
-                final int idIndex = parser.parseStudentInfoIndex(studentID, chooseUser);
-                String studentInfoLocID = "";
-                if (idIndex != -1) {
-                    studentInfoLocID = parser.parseStudentInfoLocID(idIndex, chooseUser);
-                } else {
-                    return null;
-                }
-                //TODO Hardcoded user index 0 for now
-                doRawPOSTRequest(userType.teamsHost(), "/selfserve/ViewStudentListChangeTabDisplayAction.do", new String[]{
-                        "Cookie: " + cookie,
-                        "Accept: */*",
-                        "User-Agent: QHAC"
-                }, "selectedIndexId=" + idIndex + "&studentLocId=" + studentInfoLocID + "&selectedTable=table");
-                return "&selectedIndexId=" + idIndex + "&studentLocId=" + studentInfoLocID + "&selectedTable=table";
+                chooseUser = getTEAMSPage("/selfserve/ViewStudentListAction.do", "", cookie, userType, "");
+
+                final Document doc = Jsoup.parse(chooseUser);
+                String[] studentIDs = doc.getElementById("tableBodyTable").children().select("tr > td:nth-child(1)").text().split(" ");
+                return studentIDs;
             } catch (IOException e) {
                 return null;
             }
         } else {
-            return "";
+            return null;
         }
     }
 

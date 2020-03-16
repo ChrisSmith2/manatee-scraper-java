@@ -26,11 +26,11 @@ public class Runner {
 
         final TEAMSUserType userType = retriever.getUserType(AISDuser);
         final String cookie = retriever.getNewCookie(AISDuser, AISDpass, userType);
-        final String userIdentification = retriever.postTEAMSLogin(AISDuser, AISDpass, AISDstudentid, cookie, userType);
+/*        final String userIdentification = retriever.postTEAMSLogin(AISDuser, AISDpass, AISDstudentid, cookie, userType);
         final String averageHtml = retriever.getTEAMSPage("/selfserve/PSSViewReportCardsAction.do", "", cookie, userType, userIdentification);
         final Course[] courses = parser.parseAverages(averageHtml);
         System.out.println(courses[0].title);
         ClassGrades c = retriever.getCycleClassGrades(courses[0], 0, cookie, userType, userIdentification);
-        System.out.println(c.average);
+        System.out.println(c.average);*/
 	}
 }
