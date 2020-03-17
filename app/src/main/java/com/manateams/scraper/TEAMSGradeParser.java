@@ -309,7 +309,7 @@ public class TEAMSGradeParser {
         //0=Title, 1=Average, 2=Weight
         String[] $catInfo;
         try {
-            $catInfo = $cat.getElementsByTag("h1").text().split("split|Average:");
+            $catInfo = $cat.getElementsByClass("sst-title").text().split("split");
         } catch (Exception e) {
             return null;
         }
